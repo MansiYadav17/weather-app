@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Weather — Current Conditions</title>
+  <style>
+    :root{
+      --bg1: #0f172a;
+      --bg2: #0b2545;
+      --card: rgba(255,255,255,0.06);
+      --muted: rgba(255,255,255,0.75);
+      --accent: #60a5fa;
+      --glass: rgba(255,255,255,0.04);
+      --shadow: 0 8px 30px rgba(2,6,23,0.6);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+
+    html,body{
+      height:100%;
+      margin:0;
+      background: linear-gradient(160deg, var(--bg1) 0%, var(--bg2) 60%);
+      color: #e6eef8;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+
+    .app {
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:32px;
+      box-sizing:border-box;
+    }
+
+    .card {
+      width:100%;
+      max-width:920px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+      border-radius:14px;
+      padding:22px;
+      box-shadow: var(--shadow);
+      display:grid;
+      grid-template-columns: 1fr 360px;
+      gap:20px;
+      align-items:stretch;
+      border:1px solid rgba(255,255,255,0.04);
+      backdrop-filter: blur(6px);
+    }
+
+    @media (max-width:880px){
+      .card { grid-template-columns: 1fr; max-width:720px; }
+      .right { order: -1; }
+    }
+
+    .header {
+      display:flex;
+      gap:12px;
+      align-items:center;
+    }
+
+    .logo {
+      width:64px;
+      height:64px;
+      border-radius:12px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:700;
+      font-size:20px;
+      color:var(--accent);
+      box-shadow: inset 0 -6px 18px rgba(255,255,255,0.02);
+    }
+
+    h1 {
+      margin:0;
+      font-size:18px;
+      letter-spacing:0.2px;
+    }
+
+    .sub {
+      color:var(--muted);
+      margin-top:6px;
+      font-size:13px;
+    }
+
+    /* Search */
+    .search {
+      margin-top:16px;
+      display:flex;
+      gap:10px;
+    }
+
+    .input {
+      flex:1;
+      display:flex;
+      gap:10px;
+      background:var(--glass);
+      padding:10px;
+      align-items:center;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,0.03);
+    }
+
+    .input input{
+      flex:1;
+      background:transparent;
+      border:0;
+      outline:none;
+      color:inherit;
+      font-size:15px;
+      padding:6px 4px;
+    }
+
+    .btn {
+      background: linear-gradient(90deg, var(--accent), #3b82f6);
+      border:0;
+      color:#05203a;
+      padding:10px 14px;
+      border-radius:10px;
+      font-weight:600;
+      cursor:pointer;
+      box-shadow: 0 6px 18px rgba(59,130,246,0.12);
+    }
+
+    .small {
+      font-size:13px;
+      color:var(--muted);
+    }
+
+    /* Right panel - weather card */
+    .right {
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      padding:18px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.03);
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .temp {
+      display:flex;
+      gap:12px;
+      align-items:center;
+    }
+
+    .temp .num{
+      font-size:56px;
+      font-weight:700;
+      line-height:1;
+    }
+
+    .temp .meta{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      color:var(--muted);
+      font-size:14px;
+    }
+
+    .condition {
+      display:flex;
+      gap:12px;
+      align-items:center;
+      margin-top:6px;
+    }
+
+    .condition img { width:72px; height:72px; }
+
+    .details {
+      width:100%;
+      display:grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap:10px;
+      margin-top:6px;
+    }
+
+    .detail {
+      background: rgba(255,255,255,0.02);
+      padding:10px;
+      border-radius:10px;
+      font-size:13px;
+      color:var(--muted);
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+    }
+
+    .message {
+      margin-top:8px;
+      font-size:13px;
+      color: #ffd6a3;
+      background: rgba(255,214,163,0.06);
+      padding:8px 10px;
+      border-radius:8px;
+      display:none;
+    }
+
+    .footer-note {
+      margin-top:10px;
+      font-size:12px;
+      color:var(--muted);
+      text-align:center;
+    }
+
+    .loading {
+      display:inline-block;
+      width:18px;
+      height:18px;
+      border-radius:50%;
+      border:3px solid rgba(255,255,255,0.08);
+      border-top-color:var(--accent);
+      animation:spin 1s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* small helper */
+    .muted { color:var(--muted); font-size:13px; }
+    .hidden { display:none; }
+
+  </style>
+</head>
+<body>
+  <div class="app">
+    <main class="card" role="main" aria-labelledby="title">
+      <section>
+        <div class="header">
+          <div class="logo" aria-hidden="true">WX</div>
+          <div>
+            <h1 id="title">Current Weather</h1>
+            <div class="sub">Type a city, ZIP code, or "city,country" — then press Get Weather</div>
+          </div>
+        </div>
+
+        <div class="search" aria-hidden="false">
+          <div class="input" role="search">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />
+              <circle cx="11" cy="11" r="6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <input id="locationInput" type="text" placeholder="e.g. London or 10001 or Paris,FR" aria-label="Location" />
+            <button id="getBtn" class="btn" aria-label="Get weather">Get Weather</button>
+          </div>
+        </div>
+
+        <div class="message" id="message" role="status" aria-live="polite"></div>
+
+        <div style="margin-top:18px;">
+          <div class="small muted">Quick tips:</div>
+          <ul style="margin:8px 0 0 18px; color:var(--muted); font-size:13px;">
+            <li>Enter city name (optionally country code) or postal/ZIP code</li>
+            <li>Example: "Mumbai" or "New York,US" or "400001"</li>
+          </ul>
+        </div>
+
+        <div class="footer-note" style="margin-top:18px;">
+          Note: API key is used in the client for demo. For production, use a server-side proxy to keep your key private.
+        </div>
+      </section>
+
+      <aside class="right" aria-label="Weather details">
+        <div id="weatherEmpty" style="text-align:center; color:var(--muted);">
+          <div style="font-size:20px; font-weight:600; margin-bottom:6px;">No data yet</div>
+          <div class="muted">Type a location and press Get Weather</div>
+        </div>
+
+        <div id="weatherCard" class="hidden" style="width:100%;">
+          <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
+            <div>
+              <div id="place" style="font-weight:700; font-size:16px;"></div>
+              <div id="localtime" class="muted" style="margin-top:4px;"></div>
+            </div>
+            <div class="temp" aria-live="polite">
+              <div>
+                <div class="num" id="temp_c">--°</div>
+                <div class="small muted" id="unitLabel">C</div>
+              </div>
+              <div class="meta" style="text-align:right;">
+                <div id="conditionText" class="muted">--</div>
+                <div id="feels" class="muted">Feels like --</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="condition" style="width:100%; margin-top:10px;">
+            <img id="condIcon" alt="weather icon" src="" />
+            <div style="flex:1;">
+              <div id="conditionBig" style="font-weight:600; font-size:18px;"></div>
+              <div class="muted" id="regionCountry" style="margin-top:6px;"></div>
+            </div>
+          </div>
+
+          <div class="details" style="margin-top:12px;">
+            <div class="detail"><span>Humidity</span><strong id="humidity">--%</strong></div>
+            <div class="detail"><span>Wind</span><strong id="wind">-- kph</strong></div>
+            <div class="detail"><span>Pressure</span><strong id="pressure">-- mb</strong></div>
+            <div class="detail"><span>UV Index</span><strong id="uv">--</strong></div>
+          </div>
+
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <script>
+  
+    const API_KEY = 'ff432c8c9d4945e9a6b111352252810';
+
+    // Elements
+    const input = document.getElementById('locationInput');
+    const btn = document.getElementById('getBtn');
+    const messageEl = document.getElementById('message');
+
+    const weatherCard = document.getElementById('weatherCard');
+    const weatherEmpty = document.getElementById('weatherEmpty');
+
+    const placeEl = document.getElementById('place');
+    const localtimeEl = document.getElementById('localtime');
+    const tempEl = document.getElementById('temp_c');
+    const unitLabel = document.getElementById('unitLabel');
+    const conditionText = document.getElementById('conditionText');
+    const conditionBig = document.getElementById('conditionBig');
+    const condIcon = document.getElementById('condIcon');
+    const regionCountry = document.getElementById('regionCountry');
+
+    const humidityEl = document.getElementById('humidity');
+    const windEl = document.getElementById('wind');
+    const pressureEl = document.getElementById('pressure');
+    const uvEl = document.getElementById('uv');
+    const feelsEl = document.getElementById('feels');
+
+    // Helper: show message
+    function showMessage(text, type = 'info') {
+      messageEl.style.display = 'block';
+      messageEl.textContent = text;
+      if (type === 'error') {
+        messageEl.style.background = 'rgba(255,100,100,0.06)';
+        messageEl.style.color = '#ffd7d7';
+      } else {
+        messageEl.style.background = 'rgba(255,214,163,0.06)';
+        messageEl.style.color = '#ffd6a3';
+      }
+    }
+
+    function clearMessage(){
+      messageEl.style.display = 'none';
+      messageEl.textContent = '';
+      messageEl.style.background = '';
+      messageEl.style.color = '';
+    }
+
+    // Show loading inside the button
+    function setLoading(loading) {
+      if (loading) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="loading" aria-hidden="true"></span>';
+      } else {
+        btn.disabled = false;
+        btn.textContent = 'Get Weather';
+      }
+    }
+
+    async function fetchWeather(location) {
+      if (!API_KEY || API_KEY === 'http://api.weatherapi.com/v1/current.json?key=&q=London&aqi=yes') {
+        showMessage('API key not set. Put your WeatherAPI key in the API_KEY constant in the code.', 'error');
+        return;
+      }
+
+      clearMessage();
+      setLoading(true);
+      // Build URL
+      const url = `https://api.weatherapi.com/v1/current.json?key=${encodeURIComponent(API_KEY)}&q=${encodeURIComponent(location)}&aqi=yes`;
+
+      try {
+        const res = await fetch(url, { method: 'GET' });
+        if (!res.ok) {
+          // Try to show API reason
+          const text = await res.text().catch(()=>null);
+          throw new Error(res.status + ' ' + res.statusText + (text ? ' — ' + text : ''));
+        }
+        const data = await res.json();
+
+        // Data fields: location, current
+        displayWeather(data);
+      } catch (err) {
+        console.error(err);
+        showMessage('Could not fetch weather. ' + (err.message || ''), 'error');
+        weatherCard.classList.add('hidden');
+        weatherEmpty.style.display = 'block';
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function displayWeather(data) {
+      if (!data || !data.current) {
+        showMessage('Unexpected response from API', 'error');
+        return;
+      }
+
+      weatherCard.classList.remove('hidden');
+      weatherEmpty.style.display = 'none';
+
+      const loc = data.location;
+      const cur = data.current;
+
+      placeEl.textContent = `${loc.name}, ${loc.region || loc.country || ''}`.trim();
+      localtimeEl.textContent = `Local time: ${loc.localtime}`;
+
+      // Temperatures
+      tempEl.textContent = Math.round(cur.temp_c) + '°';
+      unitLabel.textContent = 'C';
+
+      feelsEl.textContent = `Feels like ${Math.round(cur.feelslike_c)}°C`;
+
+      conditionText.textContent = cur.condition.text;
+      conditionBig.textContent = cur.condition.text;
+
+      // Icon: ensure absolute url
+      const iconUrl = cur.condition.icon;
+      condIcon.src = iconUrl.startsWith('//') ? 'https:' + iconUrl : iconUrl;
+      condIcon.alt = cur.condition.text;
+
+      regionCountry.textContent = `${loc.country} • Lat ${loc.lat}, Lon ${loc.lon}`;
+
+      humidityEl.textContent = cur.humidity + '%';
+      windEl.textContent = `${cur.wind_kph} kph ${cur.wind_dir || ''}`;
+      pressureEl.textContent = `${cur.pressure_mb} mb`;
+      uvEl.textContent = cur.uv !== undefined ? cur.uv : '--';
+
+      clearMessage();
+    }
+
+    // Event handlers
+    btn.addEventListener('click', () => {
+      const val = input.value.trim();
+      if (!val) {
+        showMessage('Please enter a location.', 'error');
+        return;
+      }
+      fetchWeather(val);
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        btn.click();
+      }
+    });
+
+    // Optional: prefill with a demo location
+    // input.value = 'London';
+
+    // Accessibility: focus input on load
+    window.addEventListener('load', () => {
+      input.focus();
+    });
+
+  </script>
+</body>
+</html>
+
